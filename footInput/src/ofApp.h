@@ -3,6 +3,10 @@
 #include "ofMain.h"
 #include "ofxCv.h"
 #include "ofxKinect.h"
+#include "ofxOsc.h"
+
+#define HOST "localhost"
+#define PORT 12345
 
 // Windows users:
 // You MUST install the libfreenect kinect drivers in order to be able to use
@@ -51,4 +55,6 @@ public:
 	vector<ofPoint> cornersUp3f;
 	ofVec3f floorNormal, floorNormalUp;
 	ofImage footThresholded;
+
+	ofxOscSender sender;
 };
