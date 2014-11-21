@@ -24,22 +24,16 @@ void ofApp::setup() {
 		ofLogNotice() << "zero plane dist: " << kinect.getZeroPlaneDistance() << "mm";
 	}
 	
-#ifdef USE_TWO_KINECTS
-	kinect2.init();
-	kinect2.open();
-#endif
-	
-	colorImg.allocate(kinect.width, kinect.height);
-	grayImage.allocate(kinect.width, kinect.height);
-	grayThreshNear.allocate(kinect.width, kinect.height);
-	grayThreshFar.allocate(kinect.width, kinect.height);
-
 	footThresholded.allocate(kinect.width / 2, kinect.height / 2, OF_IMAGE_GRAYSCALE);
-	
-	nearThreshold = 230;
-	farThreshold = 70;
-	bThreshWithOpenCV = true;
-	
+	contourFinder.setMinAreaRadius(10);
+	contourFinder.setMaxAreaRadius(100);
+	contourFinder.setThreshold(15);
+	// wait for half a frame before forgetting something
+	contourFinder.getTracker().setPersistence(15);
+	// an object can move up to 32 pixels per frame
+	contourFinder.getTracker().setMaximumDistance(32);
+
+	ofSetVerticalSync(true);
 	ofSetFrameRate(60);
 	
 	// zero the tilt on startup
@@ -59,46 +53,8 @@ void ofApp::update() {
 	
 	// there is a new frame and we are connected
 	if(kinect.isFrameNew()) {
-		
-		// load grayscale depth image from the kinect source
-		grayImage.setFromPixels(kinect.getDepthPixels(), kinect.width, kinect.height);
-		
-		// we do two thresholds - one for the far plane and one for the near plane
-		// we then do a cvAnd to get the pixels which are a union of the two thresholds
-		if(bThreshWithOpenCV) {
-			grayThreshNear = grayImage;
-			grayThreshFar = grayImage;
-			grayThreshNear.threshold(nearThreshold, true);
-			grayThreshFar.threshold(farThreshold);
-			cvAnd(grayThreshNear.getCvImage(), grayThreshFar.getCvImage(), grayImage.getCvImage(), NULL);
-		} else {
-			
-			// or we do it ourselves - show people how they can work with the pixels
-			unsigned char * pix = grayImage.getPixels();
-			
-			int numPixels = grayImage.getWidth() * grayImage.getHeight();
-			for(int i = 0; i < numPixels; i++) {
-				if(pix[i] < nearThreshold && pix[i] > farThreshold) {
-					pix[i] = 255;
-				} else {
-					pix[i] = 0;
-				}
-			}
-		}
-		
-		// update the cv images
-		grayImage.flagImageChanged();
-		
-		// find contours which are between the size of 20 pixels and 1/3 the w*h pixels.
-		// also, find holes is set to true so we will get interior contours as well....
-		ofxCvGrayscaleImage im;
-		im.setFromPixels(footThresholded.getPixelsRef());
-		contourFinder.findContours(im, 10, (kinect.width*kinect.height) / 2, 20, false);
+		contourFinder.findContours(footThresholded);
 	}
-	
-#ifdef USE_TWO_KINECTS
-	kinect2.update();
-#endif
 }
 
 //--------------------------------------------------------------
@@ -115,13 +71,6 @@ void ofApp::draw() {
 		for (int i = 0; i < cornersRgb.size(); i++) {
 			ofCircle(cornersRgb.at(i), 5);
 		}
-		
-		//grayImage.draw(10, 320, 400, 300);
-		//contourFinder.draw(10, 320, 400, 300);
-		
-#ifdef USE_TWO_KINECTS
-		kinect2.draw(420, 320, 400, 300);
-#endif
 	}
 	
 	// draw instructions
@@ -138,10 +87,7 @@ void ofApp::draw() {
     }
     
 	reportStream << "press p to switch between images and point cloud, rotate the point cloud with the mouse" << endl
-	<< "using opencv threshold = " << bThreshWithOpenCV <<" (press spacebar)" << endl
-	<< "set near threshold " << nearThreshold << " (press: + -)" << endl
-	<< "set far threshold " << farThreshold << " (press: < >) num blobs found " << contourFinder.nBlobs
-	<< ", fps: " << ofGetFrameRate() << endl
+	<< "fps: " << ofGetFrameRate() << endl
 	<< "press c to close the connection and o to open it again, connection is: " << kinect.isConnected() << endl;
 
     if(kinect.hasCamTiltControl()) {
@@ -181,8 +127,29 @@ void ofApp::drawPointCloud() {
 		}
 	}
 	footThresholded.update();
-	footThresholded.draw(0, 0, 640, 480);
-	contourFinder.draw(0, 0, 640, 480);
+	ofPushMatrix();
+	ofScale(2, 2);
+	ofSetColor(255);
+	footThresholded.draw(0, 0);
+	contourFinder.draw();
+	ofxCv::RectTracker& tracker = contourFinder.getTracker();
+	for (int i = 0; i < contourFinder.size(); i++) {
+		unsigned int label = contourFinder.getLabel(i);
+		// only draw a line if this is not a new label
+		if (tracker.existsPrevious(label)) {
+			// use the label to pick a random color
+			ofSeedRandom(label << 24);
+			ofSetColor(ofColor::fromHsb(ofRandom(255), 255, 255));
+			// get the tracked object (cv::Rect) at current and previous position
+			const cv::Rect& previous = tracker.getPrevious(label);
+			const cv::Rect& current = tracker.getCurrent(label);
+			// get the centers of the rectangles
+			ofVec2f previousPosition(previous.x + previous.width / 2, previous.y + previous.height / 2);
+			ofVec2f currentPosition(current.x + current.width / 2, current.y + current.height / 2);
+			ofLine(previousPosition, currentPosition);
+		}
+	}
+	ofPopMatrix();
 	easyCam.begin();
 	glPointSize(3);
 	ofPushMatrix();
@@ -219,37 +186,10 @@ void ofApp::exit() {
 //--------------------------------------------------------------
 void ofApp::keyPressed (int key) {
 	switch (key) {
-		case ' ':
-			bThreshWithOpenCV = !bThreshWithOpenCV;
-			break;
-			
 		case'p':
 			bDrawPointCloud = !bDrawPointCloud;
 			break;
-			
-		case '>':
-		case '.':
-			farThreshold ++;
-			if (farThreshold > 255) farThreshold = 255;
-			break;
-			
-		case '<':
-		case ',':
-			farThreshold --;
-			if (farThreshold < 0) farThreshold = 0;
-			break;
-			
-		case '+':
-		case '=':
-			nearThreshold ++;
-			if (nearThreshold > 255) nearThreshold = 255;
-			break;
-			
-		case '-':
-			nearThreshold --;
-			if (nearThreshold < 0) nearThreshold = 0;
-			break;
-			
+
 		case 'w':
 			kinect.enableDepthNearValueWhite(!kinect.isDepthNearValueWhite());
 			break;

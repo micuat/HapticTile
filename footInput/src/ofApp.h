@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofxOpenCv.h"
+#include "ofxCv.h"
 #include "ofxKinect.h"
 
 // Windows users:
@@ -18,9 +18,6 @@
 // and/or uninstall/reinstall it in Device Manager.
 //
 // No way around the Windows driver dance, sorry.
-
-// uncomment this to read from two kinects simultaneously
-//#define USE_TWO_KINECTS
 
 class ofApp : public ofBaseApp {
 public:
@@ -40,23 +37,9 @@ public:
 	
 	ofxKinect kinect;
 	
-#ifdef USE_TWO_KINECTS
-	ofxKinect kinect2;
-#endif
-	
-	ofxCvColorImage colorImg;
-	
-	ofxCvGrayscaleImage grayImage; // grayscale depth image
-	ofxCvGrayscaleImage grayThreshNear; // the near thresholded image
-	ofxCvGrayscaleImage grayThreshFar; // the far thresholded image
-	
-	ofxCvContourFinder contourFinder;
-	
-	bool bThreshWithOpenCV;
+	ofxCv::ContourFinder contourFinder;
+
 	bool bDrawPointCloud;
-	
-	int nearThreshold;
-	int farThreshold;
 	
 	int angle;
 	
