@@ -67,6 +67,7 @@ void ofApp::update() {
 				m.addFloatArg(vel.x);
 				m.addFloatArg(vel.y);
 				sender.sendMessage(m);
+				//sender.sendMessage(m, false);
 			}
 		}
 
