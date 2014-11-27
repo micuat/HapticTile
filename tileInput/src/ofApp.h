@@ -32,7 +32,7 @@ class SerialThread : public ofThread {
 
 	ofVec2f sensorIdToCoord(int id) {
 		ofVec2f v;
-		float d = 0.4f;
+		float d = 0.5f - 12.0f / 303.0f;
 		switch (id) {
 		case 0:
 			v.x = -d;
