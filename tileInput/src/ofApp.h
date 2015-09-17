@@ -79,7 +79,7 @@ class SerialThread : public ofThread {
 				}
 			};
 
-			ofLogNotice() << resultString;
+			//ofLogNotice() << resultString;
 			vector<string> splitString = ofSplitString(resultString, " ", true);
 			if (splitString.size() == 5) {
 				int index = splitString.at(0).at(0) - 'a';
@@ -89,11 +89,11 @@ class SerialThread : public ofThread {
 					}
 				}
 				else {
-					ofLogNotice() << "lost (index error)";
+					//ofLogNotice() << "lost (index error)";
 				}
 			}
 			else {
-				ofLogNotice() << "lost (parse error)";
+				//ofLogNotice() << "lost (parse error)";
 			}
 		}
 
@@ -153,5 +153,7 @@ public:
 	float		readTime;					// when did we last read?				
 
 	SerialThread serialThread;
+    
+    ofxOscSender sender;
 };
 
