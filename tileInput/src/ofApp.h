@@ -95,6 +95,7 @@ class SerialThread : public ofThread {
 			else {
 				//ofLogNotice() << "lost (parse error)";
 			}
+            ofSleepMillis(5);
 		}
 
 	}
