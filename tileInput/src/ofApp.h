@@ -101,7 +101,7 @@ class SerialThread : public ofThread {
 	}
 
 public:
-	SerialThread() {
+	SerialThread(string device) {
 		serial.listDevices();
 		vector <ofSerialDeviceInfo> deviceList = serial.getDeviceList();
 
@@ -109,7 +109,7 @@ public:
 		// (ie, COM4 on a pc, /dev/tty.... on linux, /dev/tty... on a mac)
 		// arduino users check in arduino app....
 		int baud = 9600;
-		serial.setup(0, baud); //open the first device
+		serial.setup(device, baud); //open the first device
 		//serial.setup("COM4", baud); // windows example
 		//serial.setup("/dev/tty.usbserial-A4001JEC", baud); // mac osx example
 		//serial.setup("/dev/ttyUSB0", baud); //linux example
@@ -153,8 +153,11 @@ public:
 	int			nTimesRead;					// how many times did we read?
 	float		readTime;					// when did we last read?				
 
-	SerialThread serialThread;
+	ofPtr<SerialThread> fsrThread, contactThread;
     
     ofxOscSender sender;
+    
+    enum HapticPreset {Ice, Snow, Can, Water, Sand};
+    HapticPreset hapticPresets[4];
 };
 

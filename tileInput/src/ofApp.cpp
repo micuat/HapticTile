@@ -10,7 +10,10 @@ void ofApp::setup(){
 
 	font.loadFont("DIN.otf", 64);
 
-	serialThread.startThread(true, false);
+    fsrThread = ofPtr<SerialThread>(new SerialThread("/dev/cu.usbserial-A6004b3G"));
+    contactThread = ofPtr<SerialThread>(new SerialThread("/dev/cu.usbmodemfd1311"));
+    fsrThread->startThread(true);
+    contactThread->startThread(true);
     
     sender.setup("localhost", 14924);
     
@@ -24,21 +27,75 @@ void ofApp::update(){
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             ofVec2f v;
-            int val = serialThread.getSensorValue(i, j, v);
+            int val = fsrThread->getSensorValue(i, j, v);
             values.at(i) += val;
         }
     }
     
-    ofxOscMessage message;
-    message.setAddress("/niw/client/VtoF");
-    message.addFloatArg(values.at(0) * 100);
-    message.addFloatArg(values.at(1) * 100);
-    message.addFloatArg(values.at(2) * 100);
-    message.addFloatArg(values.at(3) * 100);
-    message.addFloatArg(0.0f);
-    message.addFloatArg(0.0f);
-    sender.sendMessage(message);
-    ofLogError() << values.at(0) << " "  << values.at(1) << " "  << values.at(2) << " "  << values.at(3);
+    {
+        ofxOscMessage message;
+        message.setAddress("/niw/client/VtoF");
+        message.addFloatArg(values.at(0) * 100);
+        message.addFloatArg(values.at(1) * 100);
+        message.addFloatArg(values.at(2) * 100);
+        message.addFloatArg(values.at(3) * 100);
+        message.addFloatArg(0.0f);
+        message.addFloatArg(0.0f);
+        sender.sendMessage(message);
+        //ofLogError() << values.at(0) << " "  << values.at(1) << " "  << values.at(2) << " "  << values.at(3);
+    }
+    
+    for (int i = 0; i < 4; i++) {
+        stringstream ss;
+        ss << static_cast<char>('a' + i) << ' ';
+        vector<int> vals;
+        for (int j = 0; j < 4; j++) {
+            ofVec2f v;
+            int val = contactThread->getSensorValue(i, j, v);
+            vals.push_back(val);
+            ss << val << ' ';
+        }
+        //ofLogError() << ss.str();
+        
+        ofxOscMessage message;
+        message.setAddress("/niw/preset");
+        message.addIntArg(i + 1);
+        if(hapticPresets[i] != Ice && vals.at(0) == 0 && vals.at(1) == 0 && vals.at(2) == 1 && vals.at(3) == 0)
+        {
+            hapticPresets[i] = Ice;
+            message.addStringArg("ice");
+            sender.sendMessage(message);
+            system(("say " + ofToString(static_cast<char>('a' + i)) + " ice").c_str());
+        }
+        else if(hapticPresets[i] != Sand && vals.at(0) == 1 && vals.at(1) == 0 && vals.at(2) == 0 && vals.at(3) == 0)
+        {
+            hapticPresets[i] = Sand;
+            message.addStringArg("sand");
+            sender.sendMessage(message);
+            system(("say " + ofToString(static_cast<char>('a' + i)) + " sand").c_str());
+        }
+//        else if(hapticPresets[i] != Snow && vals.at(0) == 0 && vals.at(1) == 1 && vals.at(2) == 0 && vals.at(3) == 0)
+//        {
+//            hapticPresets[i] = Snow;
+//            message.addStringArg("snow");
+//            sender.sendMessage(message);
+//            system(("say " + ofToString(static_cast<char>('a' + i)) + " snow").c_str());
+//        }
+//        else if(hapticPresets[i] != Water && vals.at(0) == 1 && vals.at(1) == 1 && vals.at(2) == 0 && vals.at(3) == 0)
+//        {
+//            hapticPresets[i] = Water;
+//            message.addStringArg("water");
+//            sender.sendMessage(message);
+//            system(("say " + ofToString(static_cast<char>('a' + i)) + " water").c_str());
+//        }
+        else if(hapticPresets[i] != Can && vals.at(0) == 0 && vals.at(1) == 1 && vals.at(2) == 0 && vals.at(3) == 0)
+        {
+            hapticPresets[i] = Can;
+            message.addStringArg("can");
+            sender.sendMessage(message);
+            system(("say " + ofToString(static_cast<char>('a' + i)) + " can").c_str());
+        }
+    }
 }
 
 //--------------------------------------------------------------
@@ -54,7 +111,7 @@ void ofApp::draw(){
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
 			ofVec2f v;
-			int val = serialThread.getSensorValue(i, j, v);
+			int val = fsrThread->getSensorValue(i, j, v);
 			ofCircle(v * 100, val / 10.0);
 		}
 	}
