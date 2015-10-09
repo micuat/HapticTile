@@ -1,48 +1,41 @@
 #include "ofApp.h"
+#include "ofxPubSubOsc.h"
 
 //--------------------------------------------------------------
 void ofApp::setup(){
 	ofSetVerticalSync(true);
 
-	bSendSerialMessage = false;
 	ofBackground(255);
 	ofSetLogLevel(OF_LOG_VERBOSE);
-
-	font.loadFont("DIN.otf", 64);
 
     fsrThread = ofPtr<SerialThread>(new SerialThread("/dev/cu.usbserial-A6004b3G"));
     contactThread = ofPtr<SerialThread>(new SerialThread("/dev/cu.usbmodemfd1311"));
     fsrThread->startThread(true);
     contactThread->startThread(true);
     
+    fsrTiles.resize(6, 0);
+    fsrRaw.resize(16, 0);
+    ofxPublishOsc("localhost", 14924, "/niw/client/VtoF", fsrTiles, false);
+    ofxPublishOsc("localhost", 14925, "/niw/client/raw", fsrRaw, false);
+    
     sender.setup("localhost", 14924);
+    
+    hapticPresets.resize(4, None);
     
     ofSetFrameRate(30);
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-    vector<int> values(4, 0);
     
     for (int i = 0; i < 4; i++) {
+        fsrTiles.at(i) = 0;
         for (int j = 0; j < 4; j++) {
             ofVec2f v;
             int val = fsrThread->getSensorValue(i, j, v);
-            values.at(i) += val;
+            fsrTiles.at(i) += val * 100; // scaling
+            fsrRaw.at(i * 4 + j) = val * 100; // scaling
         }
-    }
-    
-    {
-        ofxOscMessage message;
-        message.setAddress("/niw/client/VtoF");
-        message.addFloatArg(values.at(0) * 100);
-        message.addFloatArg(values.at(1) * 100);
-        message.addFloatArg(values.at(2) * 100);
-        message.addFloatArg(values.at(3) * 100);
-        message.addFloatArg(0.0f);
-        message.addFloatArg(0.0f);
-        sender.sendMessage(message);
-        //ofLogError() << values.at(0) << " "  << values.at(1) << " "  << values.at(2) << " "  << values.at(3);
     }
     
     for (int i = 0; i < 4; i++) {
@@ -112,7 +105,7 @@ void ofApp::draw(){
 		for (int j = 0; j < 4; j++) {
 			ofVec2f v;
 			int val = fsrThread->getSensorValue(i, j, v);
-			ofCircle(v * 100, val / 10.0);
+			ofDrawCircle(v * 100, val / 10.0);
 		}
 	}
 }
@@ -139,7 +132,7 @@ void ofApp::mouseDragged(int x, int y, int button){
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button){
-	bSendSerialMessage = true;
+
 }
 
 //--------------------------------------------------------------
