@@ -53,35 +53,28 @@ void ofApp::update(){
         ofxOscMessage message;
         message.setAddress("/niw/preset");
         message.addIntArg(i + 1);
-        if(hapticPresets[i] != Ice && vals.at(0) == 0 && vals.at(1) == 0 && vals.at(2) == 1 && vals.at(3) == 0)
+        if(hapticPresets[i] != Ice && vals.at(0) == 0 && vals.at(1) == 1 && vals.at(2) == 0 && vals.at(3) == 0)
         {
             hapticPresets[i] = Ice;
             message.addStringArg("ice");
             sender.sendMessage(message);
             system(("say " + ofToString(static_cast<char>('a' + i)) + " ice").c_str());
         }
-        else if(hapticPresets[i] != Sand && vals.at(0) == 1 && vals.at(1) == 0 && vals.at(2) == 0 && vals.at(3) == 0)
+        else if(hapticPresets[i] != Sand && vals.at(0) == 0 && vals.at(1) == 0 && vals.at(2) == 0 && vals.at(3) == 1)
         {
             hapticPresets[i] = Sand;
             message.addStringArg("sand");
             sender.sendMessage(message);
             system(("say " + ofToString(static_cast<char>('a' + i)) + " sand").c_str());
         }
-//        else if(hapticPresets[i] != Snow && vals.at(0) == 0 && vals.at(1) == 1 && vals.at(2) == 0 && vals.at(3) == 0)
-//        {
-//            hapticPresets[i] = Snow;
-//            message.addStringArg("snow");
-//            sender.sendMessage(message);
-//            system(("say " + ofToString(static_cast<char>('a' + i)) + " snow").c_str());
-//        }
-//        else if(hapticPresets[i] != Water && vals.at(0) == 1 && vals.at(1) == 1 && vals.at(2) == 0 && vals.at(3) == 0)
-//        {
-//            hapticPresets[i] = Water;
-//            message.addStringArg("water");
-//            sender.sendMessage(message);
-//            system(("say " + ofToString(static_cast<char>('a' + i)) + " water").c_str());
-//        }
-        else if(hapticPresets[i] != Can && vals.at(0) == 0 && vals.at(1) == 1 && vals.at(2) == 0 && vals.at(3) == 0)
+        else if(hapticPresets[i] != Water && vals.at(0) == 0 && vals.at(1) == 0 && vals.at(2) == 1 && vals.at(3) == 0)
+        {
+            hapticPresets[i] = Water;
+            message.addStringArg("water");
+            sender.sendMessage(message);
+            system(("say " + ofToString(static_cast<char>('a' + i)) + " water").c_str());
+        }
+        else if(hapticPresets[i] != Can && vals.at(0) == 1 && vals.at(1) == 0 && vals.at(2) == 0 && vals.at(3) == 0)
         {
             hapticPresets[i] = Can;
             message.addStringArg("can");

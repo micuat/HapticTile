@@ -4,10 +4,10 @@ int RXLED = 17;  // The RX LED has a defined Arduino pin
 // (We could use the same macros for the RX LED too -- RXLED1,
 //  and RXLED0.)
 
-int readPins1[] = {2, 3, 4, 5};
-int readPins2[] = {10, 16, 14, 15};
-int readPins3[] = {6, 7, 8, 9};
-int readPins4[] = {21, 20, 19, 18};
+int readPins1[] = {2, 3, 4, 5, 3};
+int readPins2[] = {10, 16, 14, 15, 16};
+int readPins3[] = {6, 7, 8, 9, 7};
+int readPins4[] = {21, 20, 19, 18, 20};
 
 int vals[4][4];
 
@@ -30,7 +30,7 @@ void setup()
 
 void loop()
 {
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 4; i++)
   {
     int groundPin1 = readPins1[i];
     int groundPin2 = readPins2[i];
@@ -72,7 +72,7 @@ void loop()
     Serial.print(' ');
     Serial.print(vals[i][2]);
     Serial.print(' ');
-    Serial.println('0');
+    Serial.println(vals[i][3]);
   }
 
   digitalWrite(RXLED, LOW);   // set the LED on
