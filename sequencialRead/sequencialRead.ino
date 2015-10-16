@@ -7,7 +7,7 @@ int RXLED = 17;  // The RX LED has a defined Arduino pin
 int readPins1[] = {2, 3, 4, 5, 3};
 int readPins2[] = {10, 16, 14, 15, 16};
 int readPins3[] = {6, 7, 8, 9, 7};
-int readPins4[] = {21, 20, 19, 18, 20};
+int readPins4[] = {18, 19, 20, 21, 19};
 
 int vals[4][4];
 
