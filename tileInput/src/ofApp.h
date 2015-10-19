@@ -4,7 +4,8 @@
 #include "ofxOsc.h"
 
 class SerialThread : public ofThread {
-	ofSerial	serial;
+    bool isInitialized;
+    ofSerial	serial;
 	vector<vector<int> > sensorVals;
 
 	ofVec2f tileIdToCoord(int id) {
@@ -56,6 +57,9 @@ class SerialThread : public ofThread {
 
 	// the thread function
 	void threadedFunction() {
+        if (!isInitialized) {
+            return;
+        }
 
 		while (isThreadRunning()) {
 			int nRead = 0;  // a temp variable to keep count per read
@@ -109,7 +113,7 @@ public:
 		// (ie, COM4 on a pc, /dev/tty.... on linux, /dev/tty... on a mac)
 		// arduino users check in arduino app....
 		int baud = 9600;
-		serial.setup(device, baud); //open the first device
+		isInitialized = serial.setup(); //open the first device
 		//serial.setup("COM4", baud); // windows example
 		//serial.setup("/dev/tty.usbserial-A4001JEC", baud); // mac osx example
 		//serial.setup("/dev/ttyUSB0", baud); //linux example
