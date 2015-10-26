@@ -4,14 +4,26 @@
 //--------------------------------------------------------------
 void ofApp::setup(){
 	ofSetVerticalSync(true);
+    ofSetFrameRate(30);
 
 	ofBackground(255);
 	ofSetLogLevel(OF_LOG_VERBOSE);
 
+    ofSerial serial;
+    auto serialList = serial.getDeviceList();
+    
     fsrThread = ofPtr<SerialThread>(new SerialThread("/dev/cu.usbserial-A6004b3G"));
-    contactThread = ofPtr<SerialThread>(new SerialThread("/dev/cu.usbmodemfa1211"));
     fsrThread->startThread(true);
-    contactThread->startThread(true);
+    for(int i = 0; i < serialList.size(); i++)
+    {
+        auto name = serialList.at(i).getDeviceName();
+        if(name.compare(0, 11, "cu.usbmodem") == 0) // cu.usbmodem...
+        {
+            contactThread = ofPtr<SerialThread>(new SerialThread(name));
+            contactThread->startThread(true);
+            break;
+        }
+    }
     
     fsrTiles.resize(6, 0);
     fsrRaw.resize(16, 0);
@@ -22,7 +34,8 @@ void ofApp::setup(){
     
     hapticPresets.resize(4, None);
     
-    ofSetFrameRate(30);
+    gui = ofPtr<ofxDatGui>(new ofxDatGui( ofxDatGuiAnchor::TOP_RIGHT ));
+    gui->addFRM();
 }
 
 //--------------------------------------------------------------
@@ -86,7 +99,8 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    return;
+    ofPushStyle();
+    ofPushMatrix();
     
 	ofSetColor(80);
 	ofBackground(255);
@@ -101,11 +115,14 @@ void ofApp::draw(){
 			ofDrawCircle(v * 100, val / 10.0);
 		}
 	}
+    
+    ofPopMatrix();
+    ofPopStyle();
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-
+    
 }
 
 //--------------------------------------------------------------

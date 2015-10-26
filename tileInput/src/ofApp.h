@@ -2,6 +2,7 @@
 
 #include "ofMain.h"
 #include "ofxOsc.h"
+#include "ofxDatGui.h"
 
 class SerialThread : public ofThread {
 	ofSerial	serial;
@@ -152,5 +153,7 @@ public:
     vector<int> fsrRaw, fsrTiles;
     
     ofxOscSender sender;
+    
+    ofPtr<ofxDatGui> gui;
 };
 
