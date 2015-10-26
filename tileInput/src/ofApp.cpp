@@ -9,14 +9,14 @@ void ofApp::setup(){
 	ofSetLogLevel(OF_LOG_VERBOSE);
 
     fsrThread = ofPtr<SerialThread>(new SerialThread("/dev/cu.usbserial-A6004b3G"));
-    contactThread = ofPtr<SerialThread>(new SerialThread("/dev/cu.usbmodemfd1311"));
+    contactThread = ofPtr<SerialThread>(new SerialThread("/dev/cu.usbmodemfa1211"));
     fsrThread->startThread(true);
     contactThread->startThread(true);
     
     fsrTiles.resize(6, 0);
     fsrRaw.resize(16, 0);
     ofxPublishOsc("localhost", 14924, "/niw/client/VtoF", fsrTiles, false);
-    ofxPublishOsc("localhost", 14925, "/niw/client/raw", fsrRaw, false);
+    ofxPublishOsc("192.168.0.3", 14925, "/niw/client/raw", fsrRaw, false);
     
     sender.setup("localhost", 14924);
     
@@ -33,7 +33,7 @@ void ofApp::update(){
         for (int j = 0; j < 4; j++) {
             ofVec2f v;
             int val = fsrThread->getSensorValue(i, j, v);
-            fsrTiles.at(i) += val * 100; // scaling
+            fsrTiles.at(i) += ofClamp(val * 100 - 1000, 0, 100000) * 0.33f; // scaling
             fsrRaw.at(i * 4 + j) = val * 100; // scaling
         }
     }
