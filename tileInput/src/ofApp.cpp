@@ -1,6 +1,9 @@
 #include "ofApp.h"
 #include "ofxPubSubOsc.h"
 
+#define GUI_S(A) guiSliders.at(#A)->getValue()
+#define GUI_SADD(A, MIN, MAX, DEFAULT) guiSliders.insert(pair<string, ofxDatGuiSlider*>(#A, gui->addSlider(#A, MIN, MAX, DEFAULT)));
+
 //--------------------------------------------------------------
 void ofApp::setup(){
 	ofSetVerticalSync(true);
@@ -36,10 +39,22 @@ void ofApp::setup(){
     
     gui = ofPtr<ofxDatGui>(new ofxDatGui( ofxDatGuiAnchor::TOP_RIGHT ));
     gui->addFRM();
+    GUI_SADD(closerThreshold, 0, 50000, 20000);
+    GUI_SADD(spawnThreshold, 0, 50000, 15000);
+    GUI_SADD(gauge, 0, 1, 0);
+}
+
+void centerOfPressure(vector<int>& fsrRaw, ofVec2f& p, int& total)
+{
+    p.x = ((4 + fsrRaw[3 * 4 + 2] + fsrRaw[3 * 4 + 3] + fsrRaw[1 * 4 + 0] + fsrRaw[1 * 4 + 1] + 2 * (fsrRaw[1 * 4 + 2] + fsrRaw[1 * 4 + 3])) / (float)(8 + total));
+    p.y = ((4 + fsrRaw[3 * 4 + 0] + fsrRaw[3 * 4 + 3] + fsrRaw[1 * 4 + 0] + fsrRaw[1 * 4 + 3]) / (float)(8 + total));
+
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
+    int fsrFrontTotal = 0;
+    int frontTiles[] = {1, 3}; // 0..3
     
     for (int i = 0; i < 4; i++) {
         fsrTiles.at(i) = 0;
@@ -48,7 +63,81 @@ void ofApp::update(){
             int val = fsrThread->getSensorValue(i, j, v);
             fsrTiles.at(i) += ofClamp(val * 100 - 1000, 0, 100000) * 0.33f; // scaling
             fsrRaw.at(i * 4 + j) = val * 100; // scaling
+            
+            if(i == frontTiles[0] || i == frontTiles[1])
+            {
+                fsrFrontTotal += val * 100;
+            }
         }
+    }
+    
+    centerOfPressure(fsrRaw, contactPosition, fsrFrontTotal);
+    
+    switch(footTracker.state)
+    {
+        case FootTracker::WaitForAdd:
+            if(fsrFrontTotal > GUI_S(closerThreshold))
+            {
+                footTracker.state = FootTracker::Update;
+                footTracker.time = 0;
+                footTracker.count = 0;
+                {
+                    ofxOscMessage message;
+                    message.setAddress("/niw/fsr");
+                    message.addIntArg(4);
+                    message.addStringArg("off");
+                    sender.sendMessage(message);
+                }
+                // send add
+            }
+            break;
+        case FootTracker::Update:
+            if(fsrFrontTotal < GUI_S(spawnThreshold))
+            {
+                footTracker.state = FootTracker::WaitForAdd;
+                footTracker.time = 0;
+                footTracker.count = 0;
+                guiSliders.at("gauge")->setValue(0);
+                // send remove
+            }
+            else
+            {
+                footTracker.count++;
+                footTracker.time += ofGetLastFrameTime();
+                footTracker.gauge = ofMap(sinf(footTracker.time * M_PI * 0.5f), -1, 1, 0, 1);
+                guiSliders.at("gauge")->setValue(footTracker.gauge);
+                
+                if(footTracker.count % 8 == 0)
+                {
+                    ofxOscMessage message;
+                    message.setAddress("/niw/crumpleparams");
+                    message.addIntArg(4);
+                    message.addFloatArg(0.5 * footTracker.gauge * footTracker.gauge);
+                    message.addFloatArg(69.6);
+                    message.addFloatArg(14.2);
+                    message.addFloatArg(132.2);
+                    //message.addFloatArg(ofMap(footTracker.gauge, 0, 1, 100, 200));
+                    message.addFloatArg(141.);
+                    message.addFloatArg(152.);
+                    message.addFloatArg(10.);
+                    message.addFloatArg(0.718);
+                    message.addFloatArg(0.435);
+                    message.addFloatArg(0.643);
+                    message.addFloatArg(0.843);
+                    message.addFloatArg(4.736);
+                    message.addFloatArg(203.);
+                    sender.sendMessage(message);
+                }
+                if(footTracker.count % 8 == 1)
+                {
+                    ofxOscMessage message;
+                    message.setAddress("/niw/direct");
+                    message.addIntArg(4);
+                    sender.sendMessage(message);
+                }
+                // send update
+            }
+            break;
     }
     
     for (int i = 0; i < 4; i++) {
@@ -71,28 +160,28 @@ void ofApp::update(){
             hapticPresets[i] = Ice;
             message.addStringArg("ice");
             sender.sendMessage(message);
-            system(("say " + ofToString(static_cast<char>('a' + i)) + " ice").c_str());
+            //system(("say " + ofToString(static_cast<char>('a' + i)) + " ice").c_str());
         }
         else if(hapticPresets[i] != Sand && vals.at(0) == 0 && vals.at(1) == 0 && vals.at(2) == 0 && vals.at(3) == 1)
         {
             hapticPresets[i] = Sand;
             message.addStringArg("sand");
             sender.sendMessage(message);
-            system(("say " + ofToString(static_cast<char>('a' + i)) + " sand").c_str());
+            //system(("say " + ofToString(static_cast<char>('a' + i)) + " sand").c_str());
         }
         else if(hapticPresets[i] != Water && vals.at(0) == 0 && vals.at(1) == 0 && vals.at(2) == 1 && vals.at(3) == 0)
         {
             hapticPresets[i] = Water;
             message.addStringArg("water");
             sender.sendMessage(message);
-            system(("say " + ofToString(static_cast<char>('a' + i)) + " water").c_str());
+            //system(("say " + ofToString(static_cast<char>('a' + i)) + " water").c_str());
         }
         else if(hapticPresets[i] != Can && vals.at(0) == 1 && vals.at(1) == 0 && vals.at(2) == 0 && vals.at(3) == 0)
         {
             hapticPresets[i] = Can;
             message.addStringArg("can");
             sender.sendMessage(message);
-            system(("say " + ofToString(static_cast<char>('a' + i)) + " can").c_str());
+            //system(("say " + ofToString(static_cast<char>('a' + i)) + " can").c_str());
         }
     }
 }
@@ -105,8 +194,12 @@ void ofApp::draw(){
 	ofSetColor(80);
 	ofBackground(255);
 	ofFill();
-	ofTranslate(200, 400);
+    
+    ofPushMatrix();
+    
 	ofScale(1, -1);
+    ofRotate(90);
+    ofTranslate(-ofGetWidth() / 2, -ofGetHeight() / 2);
     
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
@@ -115,6 +208,12 @@ void ofApp::draw(){
 			ofDrawCircle(v * 100, val / 10.0);
 		}
 	}
+    
+    ofPopMatrix();
+    
+    ofTranslate(ofGetWidth() / 2, ofGetHeight() / 2);
+    if(footTracker.state == FootTracker::Update)
+        ofDrawCircle(contactPosition * 100, 100);
     
     ofPopMatrix();
     ofPopStyle();

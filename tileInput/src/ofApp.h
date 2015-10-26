@@ -12,20 +12,20 @@ class SerialThread : public ofThread {
 		ofVec2f v;
 		switch (id) {
 		case 0:
-			v.x = 0.5f;
-			v.y = 0.5f;
+			v.x = -0.5f;
+			v.y = -0.5f;
 			break;
 		case 1:
-			v.x = 1.5f;
-			v.y = 0.5f;
+			v.x = 0.5f;
+			v.y = -0.5f;
 			break;
 		case 2:
-			v.x = 0.5f;
-			v.y = 1.5f;
+			v.x = -0.5f;
+			v.y = 0.5f;
 			break;
 		case 3:
-			v.x = 1.5f;
-			v.y = 1.5f;
+			v.x = 0.5f;
+			v.y = 0.5f;
 			break;
 		}
 		return v;
@@ -155,5 +155,19 @@ public:
     ofxOscSender sender;
     
     ofPtr<ofxDatGui> gui;
+    map<string, ofxDatGuiSlider*> guiSliders;
+    
+    ofVec2f contactPosition;
+    struct FootTracker
+    {
+        enum State {WaitForAdd, Update};
+        State state;
+        float time;
+        float gauge;
+        int count;
+        
+        FootTracker() : state(WaitForAdd), time(0), gauge(0), count(0) {};
+    };
+    FootTracker footTracker;
 };
 
