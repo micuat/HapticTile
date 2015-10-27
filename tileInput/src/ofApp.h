@@ -3,6 +3,7 @@
 #include "ofMain.h"
 #include "ofxOsc.h"
 #include "ofxDatGui.h"
+#include "ofxCv.h"
 
 class SerialThread : public ofThread {
 	ofSerial	serial;
@@ -170,5 +171,7 @@ public:
         FootTracker() : state(WaitForAdd), time(0), gauge(0), count(0) {};
     };
     FootTracker footTracker;
+    
+    ofxCv::KalmanPosition kalmanPosition, kalmanForce;
 };
 

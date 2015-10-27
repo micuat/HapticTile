@@ -43,7 +43,11 @@ void ofApp::setup(){
     GUI_SADD(closerThreshold, 0, 50000, 20000);
     GUI_SADD(spawnThreshold, 0, 50000, 15000);
     GUI_SADD(gauge, 0, 1, 0);
+    GUI_SADD(fsr, 0, 100000, 0);
     guiGaugeMode = gui->addToggle("Enable Adaptive");
+    
+    kalmanPosition.init(1e-4, 10);
+    kalmanForce.init(1e-4, 10);
 }
 
 void centerOfPressure(vector<int>& fsrRaw, ofVec2f& p, int& total)
@@ -74,6 +78,11 @@ void ofApp::update(){
     }
     
     centerOfPressure(fsrRaw, contactPosition, fsrFrontTotal);
+    kalmanPosition.update(contactPosition);
+    contactPosition = kalmanPosition.getEstimation();
+    kalmanForce.update(ofVec2f(fsrFrontTotal));
+    float fsrFrontTotalSmoothed = kalmanForce.getEstimation().x;
+    guiSliders.at("fsr")->setValue(fsrFrontTotalSmoothed);
     
     switch(footTracker.state)
     {
@@ -126,7 +135,7 @@ void ofApp::update(){
                 footTracker.time += ofGetLastFrameTime();
                 if(guiGaugeMode->getEnabled())
                 {
-                    footTracker.gauge = ofMap(fsrFrontTotal, GUI_S(closerThreshold), 70000, 0, 1, true);
+                    footTracker.gauge = ofMap(fsrFrontTotalSmoothed, GUI_S(closerThreshold), 70000, 0, 1, true);
                 }
                 else
                 {
@@ -250,7 +259,8 @@ void ofApp::draw(){
     
     ofTranslate(ofGetWidth() / 2, ofGetHeight() / 2);
     if(footTracker.state == FootTracker::Update)
-        ofDrawCircle(contactPosition * 100, 100);
+        ofSetColor(ofFloatColor::paleVioletRed);
+    ofDrawCircle(contactPosition * 100, 100);
     
     ofPopMatrix();
     ofPopStyle();
