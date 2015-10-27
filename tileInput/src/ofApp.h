@@ -152,9 +152,10 @@ public:
     
     vector<int> fsrRaw, fsrTiles;
     
-    ofxOscSender sender;
+    ofxOscSender sender, senderRemote;
     
     ofPtr<ofxDatGui> gui;
+    ofxDatGuiToggle* guiGaugeMode;
     map<string, ofxDatGuiSlider*> guiSliders;
     
     ofVec2f contactPosition;

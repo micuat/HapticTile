@@ -31,9 +31,10 @@ void ofApp::setup(){
     fsrTiles.resize(6, 0);
     fsrRaw.resize(16, 0);
     ofxPublishOsc("localhost", 14924, "/niw/client/VtoF", fsrTiles, false);
-    ofxPublishOsc("192.168.0.3", 14925, "/niw/client/raw", fsrRaw, false);
+    //ofxPublishOsc("192.168.0.3", 14925, "/niw/client/raw", fsrRaw, false);
     
     sender.setup("localhost", 14924);
+    senderRemote.setup("192.168.0.3", 14925);
     
     hapticPresets.resize(4, None);
     
@@ -42,6 +43,7 @@ void ofApp::setup(){
     GUI_SADD(closerThreshold, 0, 50000, 20000);
     GUI_SADD(spawnThreshold, 0, 50000, 15000);
     GUI_SADD(gauge, 0, 1, 0);
+    guiGaugeMode = gui->addToggle("Enable Adaptive");
 }
 
 void centerOfPressure(vector<int>& fsrRaw, ofVec2f& p, int& total)
@@ -88,7 +90,16 @@ void ofApp::update(){
                     message.addStringArg("off");
                     sender.sendMessage(message);
                 }
-                // send add
+                {
+                    ofxOscMessage message;
+                    message.setAddress("/niw/client/aggregator/floorcontact");
+                    message.addStringArg("add");
+                    message.addIntArg(0);
+                    message.addFloatArg(contactPosition.x);
+                    message.addFloatArg(contactPosition.y);
+                    message.addFloatArg(0.0f);
+                    senderRemote.sendMessage(message);
+                }
             }
             break;
         case FootTracker::Update:
@@ -98,21 +109,38 @@ void ofApp::update(){
                 footTracker.time = 0;
                 footTracker.count = 0;
                 guiSliders.at("gauge")->setValue(0);
-                // send remove
+                {
+                    ofxOscMessage message;
+                    message.setAddress("/niw/client/aggregator/floorcontact");
+                    message.addStringArg("remove");
+                    message.addIntArg(0);
+                    message.addFloatArg(contactPosition.x);
+                    message.addFloatArg(contactPosition.y);
+                    message.addFloatArg(footTracker.gauge);
+                    senderRemote.sendMessage(message);
+                }
             }
             else
             {
                 footTracker.count++;
                 footTracker.time += ofGetLastFrameTime();
-                footTracker.gauge = ofMap(sinf(footTracker.time * M_PI * 0.5f), -1, 1, 0, 1);
+                if(guiGaugeMode->getEnabled())
+                {
+                    footTracker.gauge = ofMap(fsrFrontTotal, GUI_S(closerThreshold), 70000, 0, 1, true);
+                }
+                else
+                {
+                    footTracker.gauge = ofMap(cosf(footTracker.time * M_PI * 0.5f), 1, -1, 0, 1);
+                }
                 guiSliders.at("gauge")->setValue(footTracker.gauge);
                 
                 if(footTracker.count % 8 == 0)
                 {
+                    float gauge = ofMap(footTracker.gauge, 0, 1, 0.25, 1);
                     ofxOscMessage message;
                     message.setAddress("/niw/crumpleparams");
                     message.addIntArg(4);
-                    message.addFloatArg(0.5 * footTracker.gauge * footTracker.gauge);
+                    message.addFloatArg(0.5 * gauge * gauge);
                     message.addFloatArg(69.6);
                     message.addFloatArg(14.2);
                     message.addFloatArg(132.2);
@@ -135,7 +163,16 @@ void ofApp::update(){
                     message.addIntArg(4);
                     sender.sendMessage(message);
                 }
-                // send update
+                {
+                    ofxOscMessage message;
+                    message.setAddress("/niw/client/aggregator/floorcontact");
+                    message.addStringArg("update");
+                    message.addIntArg(0);
+                    message.addFloatArg(contactPosition.x);
+                    message.addFloatArg(contactPosition.y);
+                    message.addFloatArg(footTracker.gauge);
+                    senderRemote.sendMessage(message);
+                }
             }
             break;
     }
