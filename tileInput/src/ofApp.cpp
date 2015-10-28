@@ -47,7 +47,7 @@ void ofApp::setup(){
     guiGaugeMode = gui->addToggle("Enable Adaptive");
     
     kalmanPosition.init(1e-4, 10);
-    kalmanForce.init(1e-4, 10);
+    kalmanForce.init(1e-4, 1);
 }
 
 void centerOfPressure(vector<int>& fsrRaw, ofVec2f& p, int& total)
@@ -77,8 +77,9 @@ void ofApp::update(){
         }
     }
     
-    centerOfPressure(fsrRaw, contactPosition, fsrFrontTotal);
-    kalmanPosition.update(contactPosition);
+    ofVec2f contactPositionRaw;
+    centerOfPressure(fsrRaw, contactPositionRaw, fsrFrontTotal);
+    kalmanPosition.update(contactPositionRaw);
     contactPosition = kalmanPosition.getEstimation();
     kalmanForce.update(ofVec2f(fsrFrontTotal));
     float fsrFrontTotalSmoothed = kalmanForce.getEstimation().x;
@@ -92,6 +93,31 @@ void ofApp::update(){
                 footTracker.state = FootTracker::Update;
                 footTracker.time = 0;
                 footTracker.count = 0;
+                for(int i = 0; i < 50; i++)
+                {
+                    kalmanPosition.update(contactPositionRaw);
+                }
+                {
+                    ofxOscMessage message;
+                    message.setAddress("/niw/fsr");
+                    message.addIntArg(1 );
+                    message.addStringArg("off");
+                    sender.sendMessage(message);
+                }
+                {
+                    ofxOscMessage message;
+                    message.setAddress("/niw/fsr");
+                    message.addIntArg(3);
+                    message.addStringArg("off");
+                    sender.sendMessage(message);
+                }
+                {
+                    ofxOscMessage message;
+                    message.setAddress("/niw/fsr");
+                    message.addIntArg(2);
+                    message.addStringArg("off");
+                    sender.sendMessage(message);
+                }
                 {
                     ofxOscMessage message;
                     message.setAddress("/niw/fsr");
@@ -139,7 +165,7 @@ void ofApp::update(){
                 }
                 else
                 {
-                    footTracker.gauge = ofMap(cosf(footTracker.time * M_PI * 0.5f), 1, -1, 0, 1);
+                    footTracker.gauge = ofMap(cosf(footTracker.time * M_PI * 0.125f), 1, -1, 0, 1);
                 }
                 guiSliders.at("gauge")->setValue(footTracker.gauge);
                 
@@ -148,7 +174,7 @@ void ofApp::update(){
                     float gauge = ofMap(footTracker.gauge, 0, 1, 0.25, 1);
                     ofxOscMessage message;
                     message.setAddress("/niw/crumpleparams");
-                    message.addIntArg(4);
+                    message.addIntArg(contactPosition.x < 1.0f ? 4 : 2);
                     message.addFloatArg(0.5 * gauge * gauge);
                     message.addFloatArg(69.6);
                     message.addFloatArg(14.2);
@@ -169,7 +195,7 @@ void ofApp::update(){
                 {
                     ofxOscMessage message;
                     message.setAddress("/niw/direct");
-                    message.addIntArg(4);
+                    message.addIntArg(contactPosition.x < 1.0f ? 4 : 2);
                     sender.sendMessage(message);
                 }
                 {
