@@ -162,7 +162,7 @@ public:
     ofVec2f contactPosition;
     struct FootTracker
     {
-        enum State {WaitForAdd, Update};
+        enum State {WaitForAdd, Update, WaitForRemove, Idle};
         State state;
         float time;
         float gauge;

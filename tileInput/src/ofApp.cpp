@@ -44,7 +44,9 @@ void ofApp::setup(){
     GUI_SADD(spawnThreshold, 0, 50000, 15000);
     GUI_SADD(gauge, 0, 1, 0);
     GUI_SADD(fsr, 0, 100000, 0);
-    guiGaugeMode = gui->addToggle("Enable Adaptive");
+    GUI_SADD(delayBeforeAdd, 0, 20, 10);
+    GUI_SADD(delayAfterRemove, 0, 2, 0.5f);
+    guiGaugeMode = gui->addToggle("Enable Adaptive", true);
     
     kalmanPosition.init(1e-4, 10);
     kalmanForce.init(1e-4, 1);
@@ -79,16 +81,19 @@ void ofApp::update(){
     
     ofVec2f contactPositionRaw;
     centerOfPressure(fsrRaw, contactPositionRaw, fsrFrontTotal);
-    kalmanPosition.update(contactPositionRaw);
-    contactPosition = kalmanPosition.getEstimation();
-    kalmanForce.update(ofVec2f(fsrFrontTotal));
-    float fsrFrontTotalSmoothed = kalmanForce.getEstimation().x;
-    guiSliders.at("fsr")->setValue(fsrFrontTotalSmoothed);
     
     switch(footTracker.state)
     {
         case FootTracker::WaitForAdd:
             if(fsrFrontTotal > GUI_S(closerThreshold))
+            {
+                footTracker.count++;
+            }
+            else
+            {
+                footTracker.count = 0;
+            }
+            if(footTracker.count > GUI_S(delayBeforeAdd))
             {
                 footTracker.state = FootTracker::Update;
                 footTracker.time = 0;
@@ -138,9 +143,9 @@ void ofApp::update(){
             }
             break;
         case FootTracker::Update:
-            if(fsrFrontTotal < GUI_S(spawnThreshold))
+            if(fsrFrontTotal < GUI_S(closerThreshold))
             {
-                footTracker.state = FootTracker::WaitForAdd;
+                footTracker.state = FootTracker::WaitForRemove;
                 footTracker.time = 0;
                 footTracker.count = 0;
                 guiSliders.at("gauge")->setValue(0);
@@ -157,6 +162,12 @@ void ofApp::update(){
             }
             else
             {
+                kalmanPosition.update(contactPositionRaw);
+                contactPosition = kalmanPosition.getEstimation();
+                kalmanForce.update(ofVec2f(fsrFrontTotal));
+                float fsrFrontTotalSmoothed = kalmanForce.getEstimation().x;
+                guiSliders.at("fsr")->setValue(fsrFrontTotalSmoothed);
+                
                 footTracker.count++;
                 footTracker.time += ofGetLastFrameTime();
                 if(guiGaugeMode->getEnabled())
@@ -208,6 +219,22 @@ void ofApp::update(){
                     message.addFloatArg(footTracker.gauge);
                     senderRemote.sendMessage(message);
                 }
+            }
+            break;
+        case FootTracker::WaitForRemove:
+            if(fsrFrontTotal < GUI_S(spawnThreshold))
+            {
+                footTracker.state = FootTracker::Idle;
+                footTracker.time = ofGetElapsedTimef();
+                footTracker.count = 0;
+                guiSliders.at("gauge")->setValue(0);
+            }
+            break;
+        case FootTracker::Idle:
+            if(ofGetElapsedTimef() - footTracker.time > GUI_S(delayAfterRemove) && fsrFrontTotal < GUI_S(spawnThreshold))
+            {
+                footTracker.state = FootTracker::WaitForAdd;
+                footTracker.count = 0;
             }
             break;
     }
