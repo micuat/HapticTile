@@ -4,6 +4,8 @@
 #define GUI_S(A) guiSliders.at(#A)->getValue()
 #define GUI_SADD(A, MIN, MAX, DEFAULT) guiSliders.insert(pair<string, ofxDatGuiSlider*>(#A, gui->addSlider(#A, MIN, MAX, DEFAULT)));
 
+ofxOscSender sender, senderRemote;
+
 //--------------------------------------------------------------
 void ofApp::setup(){
 	ofSetVerticalSync(true);
@@ -32,6 +34,8 @@ void ofApp::setup(){
     fsrRaw.resize(16, 0);
     ofxPublishOsc("localhost", 14924, "/niw/client/VtoF", fsrTiles, false);
     //ofxPublishOsc("192.168.0.3", 14925, "/niw/client/raw", fsrRaw, false);
+    
+    ofxSubscribeOsc(14926, "/niw/game/status", gameStatus);
     
     sender.setup("localhost", 14924);
     senderRemote.setup("192.168.0.3", 14925);
@@ -77,7 +81,8 @@ void ofApp::update(){
         for (int j = 0; j < 4; j++) {
             ofVec2f v;
             int val = fsrThread->getSensorValue(i, j, v);
-            fsrTiles.at(i) += ofClamp(val * 100, 0, 100000) * 0.5f; // scaling
+            if(gameStatus != "start")
+                fsrTiles.at(i) += ofClamp(val * 100, 0, 100000) * 0.5f; // scaling
             
             if(doInitialize)
                 fsrBias.at(i * 4 + j) = val * 100;
@@ -116,34 +121,6 @@ void ofApp::update(){
                 for(int i = 0; i < 50; i++)
                 {
                     kalmanPosition.update(contactPositionRaw);
-                }
-                {
-                    ofxOscMessage message;
-                    message.setAddress("/niw/fsr");
-                    message.addIntArg(1 );
-                    message.addStringArg("off");
-                    sender.sendMessage(message);
-                }
-                {
-                    ofxOscMessage message;
-                    message.setAddress("/niw/fsr");
-                    message.addIntArg(3);
-                    message.addStringArg("off");
-                    sender.sendMessage(message);
-                }
-                {
-                    ofxOscMessage message;
-                    message.setAddress("/niw/fsr");
-                    message.addIntArg(2);
-                    message.addStringArg("off");
-                    sender.sendMessage(message);
-                }
-                {
-                    ofxOscMessage message;
-                    message.setAddress("/niw/fsr");
-                    message.addIntArg(4);
-                    message.addStringArg("off");
-                    sender.sendMessage(message);
                 }
                 {
                     ofxOscMessage message;

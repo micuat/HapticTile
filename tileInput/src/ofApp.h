@@ -152,9 +152,7 @@ public:
     vector<HapticPreset> hapticPresets;
     
     vector<int> fsrRaw, fsrTiles;
-    
-    ofxOscSender sender, senderRemote;
-    
+        
     ofPtr<ofxDatGui> gui;
     ofxDatGuiToggle* guiGaugeMode;
     map<string, ofxDatGuiSlider*> guiSliders;
@@ -176,5 +174,7 @@ public:
     
     int slot;
     vector<int> fsrBias;
+    
+    string gameStatus;
 };
 
