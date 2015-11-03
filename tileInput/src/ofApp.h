@@ -155,6 +155,8 @@ public:
         
     ofPtr<ofxDatGui> gui;
     ofxDatGuiToggle* guiGaugeMode;
+    ofxDatGuiButton* guiZeroInitialize;
+    bool doZeroInitialize;
     map<string, ofxDatGuiSlider*> guiSliders;
     
     ofVec2f contactPosition;

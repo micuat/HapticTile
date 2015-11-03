@@ -2,7 +2,7 @@
 #include "ofxPubSubOsc.h"
 
 #define GUI_S(A) guiSliders.at(#A)->getValue()
-#define GUI_SADD(A, MIN, MAX, DEFAULT) guiSliders.insert(pair<string, ofxDatGuiSlider*>(#A, gui->addSlider(#A, MIN, MAX, DEFAULT)));
+#define GUI_SADD(G, A, MIN, MAX, DEFAULT) guiSliders.insert(pair<string, ofxDatGuiSlider*>(#A, G->addSlider(#A, MIN, MAX, DEFAULT)));
 
 ofxOscSender sender, senderRemote;
 
@@ -44,16 +44,27 @@ void ofApp::setup(){
     
     gui = ofPtr<ofxDatGui>(new ofxDatGui( ofxDatGuiAnchor::TOP_RIGHT ));
     gui->addFRM();
-    GUI_SADD(closerThreshold, 0, 50000, 20000);
-    GUI_SADD(spawnThreshold, 0, 50000, 15000);
-    GUI_SADD(farThreshold, 0, 100000, 60000);
-    GUI_SADD(gauge, 0, 1, 0);
-    GUI_SADD(fsr actual, 0, 100000, 0);
-    GUI_SADD(fsr filtered, 0, 100000, 0);
-    GUI_SADD(delayBeforeAdd, 0, 20, 10);
-    GUI_SADD(delayAfterRemove, 0, 2, 0.5f);
-    GUI_SADD(state, 0, 10, 0);
-    guiGaugeMode = gui->addToggle("Enable Adaptive", true);
+    
+    guiZeroInitialize = gui->addButton("Zero Initialize");
+    gui->buttonEventCallback = [&](ofxDatGuiButtonEvent e) {
+        if(e.target == guiZeroInitialize)
+        {
+            doZeroInitialize = true;
+        }
+    };
+    doZeroInitialize = false;
+    
+    auto guiDebug = gui->addFolder("debug");
+    GUI_SADD(guiDebug, closerThreshold, 0, 50000, 20000);
+    GUI_SADD(guiDebug, spawnThreshold, 0, 50000, 15000);
+    GUI_SADD(guiDebug, farThreshold, 0, 100000, 60000);
+    GUI_SADD(guiDebug, gauge, 0, 1, 0);
+    GUI_SADD(guiDebug, fsr actual, 0, 100000, 0);
+    GUI_SADD(guiDebug, fsr filtered, 0, 100000, 0);
+    GUI_SADD(guiDebug, delayBeforeAdd, 0, 20, 10);
+    GUI_SADD(guiDebug, delayAfterRemove, 0, 2, 0.5f);
+    GUI_SADD(guiDebug, state, 0, 10, 0);
+    guiGaugeMode = guiDebug->addToggle("Enable Adaptive", true);
     
     kalmanPosition.init(1e-4, 10);
     kalmanForce.init(1e-4, 1);
@@ -75,7 +86,6 @@ void ofApp::update(){
     int frontTiles[] = {1, 3}; // 0..3
     
     int slotCount;
-    bool doInitialize = ofGetKeyPressed(' ');
     for (int i = 0; i < 4; i++) {
         fsrTiles.at(i) = 0;
         for (int j = 0; j < 4; j++) {
@@ -84,7 +94,7 @@ void ofApp::update(){
             if(gameStatus != "start")
                 fsrTiles.at(i) += ofClamp(val * 100, 0, 100000) * 0.5f; // scaling
             
-            if(doInitialize)
+            if(doZeroInitialize)
                 fsrBias.at(i * 4 + j) = val * 100;
             fsrRaw.at(i * 4 + j) = val * 100 - fsrBias.at(i * 4 + j); // scaling
             
@@ -97,6 +107,7 @@ void ofApp::update(){
             }
         }
     }
+    doZeroInitialize = false;
     
     ofVec2f contactPositionRaw;
     centerOfPressure(fsrRaw, contactPositionRaw, fsrFrontTotal);
