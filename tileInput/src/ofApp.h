@@ -162,7 +162,7 @@ public:
     ofVec2f contactPosition;
     struct FootTracker
     {
-        enum State {WaitForAdd, Update, WaitForRemove, Idle};
+        enum State {WaitForAdd, Update, Idle};
         State state;
         float time;
         float gauge;
@@ -173,5 +173,8 @@ public:
     FootTracker footTracker;
     
     ofxCv::KalmanPosition kalmanPosition, kalmanForce;
+    
+    int slot;
+    vector<int> fsrBias;
 };
 

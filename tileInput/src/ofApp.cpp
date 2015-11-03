@@ -42,14 +42,20 @@ void ofApp::setup(){
     gui->addFRM();
     GUI_SADD(closerThreshold, 0, 50000, 20000);
     GUI_SADD(spawnThreshold, 0, 50000, 15000);
+    GUI_SADD(farThreshold, 0, 100000, 60000);
     GUI_SADD(gauge, 0, 1, 0);
-    GUI_SADD(fsr, 0, 100000, 0);
+    GUI_SADD(fsr actual, 0, 100000, 0);
+    GUI_SADD(fsr filtered, 0, 100000, 0);
     GUI_SADD(delayBeforeAdd, 0, 20, 10);
     GUI_SADD(delayAfterRemove, 0, 2, 0.5f);
+    GUI_SADD(state, 0, 10, 0);
     guiGaugeMode = gui->addToggle("Enable Adaptive", true);
     
     kalmanPosition.init(1e-4, 10);
     kalmanForce.init(1e-4, 1);
+    
+    slot == 0;
+    fsrBias.resize(16, 0);
 }
 
 void centerOfPressure(vector<int>& fsrRaw, ofVec2f& p, int& total)
@@ -64,17 +70,25 @@ void ofApp::update(){
     int fsrFrontTotal = 0;
     int frontTiles[] = {1, 3}; // 0..3
     
+    int slotCount;
+    bool doInitialize = ofGetKeyPressed(' ');
     for (int i = 0; i < 4; i++) {
         fsrTiles.at(i) = 0;
         for (int j = 0; j < 4; j++) {
             ofVec2f v;
             int val = fsrThread->getSensorValue(i, j, v);
-            fsrTiles.at(i) += ofClamp(val * 100 - 1000, 0, 100000) * 0.33f; // scaling
-            fsrRaw.at(i * 4 + j) = val * 100; // scaling
+            fsrTiles.at(i) += ofClamp(val * 100, 0, 100000) * 0.5f; // scaling
+            
+            if(doInitialize)
+                fsrBias.at(i * 4 + j) = val * 100;
+            fsrRaw.at(i * 4 + j) = val * 100 - fsrBias.at(i * 4 + j); // scaling
             
             if(i == frontTiles[0] || i == frontTiles[1])
             {
-                fsrFrontTotal += val * 100;
+                if(slotCount == slot)
+                    guiSliders.at("fsr actual")->setValue(fsrRaw.at(i * 4 + j));
+                slotCount++;
+                fsrFrontTotal += fsrRaw.at(i * 4 + j);
             }
         }
     }
@@ -88,8 +102,9 @@ void ofApp::update(){
             if(fsrFrontTotal > GUI_S(closerThreshold))
             {
                 footTracker.count++;
+                footTracker.time = ofGetElapsedTimef();
             }
-            else
+            else if(ofGetElapsedTimef() - footTracker.time > 1.0f)
             {
                 footTracker.count = 0;
             }
@@ -145,7 +160,7 @@ void ofApp::update(){
         case FootTracker::Update:
             if(fsrFrontTotal < GUI_S(closerThreshold))
             {
-                footTracker.state = FootTracker::WaitForRemove;
+                footTracker.state = FootTracker::Idle;
                 footTracker.time = 0;
                 footTracker.count = 0;
                 guiSliders.at("gauge")->setValue(0);
@@ -166,13 +181,13 @@ void ofApp::update(){
                 contactPosition = kalmanPosition.getEstimation();
                 kalmanForce.update(ofVec2f(fsrFrontTotal));
                 float fsrFrontTotalSmoothed = kalmanForce.getEstimation().x;
-                guiSliders.at("fsr")->setValue(fsrFrontTotalSmoothed);
+                guiSliders.at("fsr filtered")->setValue(fsrFrontTotalSmoothed);
                 
                 footTracker.count++;
                 footTracker.time += ofGetLastFrameTime();
                 if(guiGaugeMode->getEnabled())
                 {
-                    footTracker.gauge = ofMap(fsrFrontTotalSmoothed, GUI_S(closerThreshold), 70000, 0, 1, true);
+                    footTracker.gauge = ofMap(fsrFrontTotalSmoothed, GUI_S(closerThreshold), GUI_S(farThreshold), 0, 1, true);
                 }
                 else
                 {
@@ -221,23 +236,17 @@ void ofApp::update(){
                 }
             }
             break;
-        case FootTracker::WaitForRemove:
-            if(fsrFrontTotal < GUI_S(spawnThreshold))
+        case FootTracker::Idle:
+            if(ofGetElapsedTimef() - footTracker.time > GUI_S(delayAfterRemove)/* && fsrFrontTotal < GUI_S(spawnThreshold)*/)
             {
-                footTracker.state = FootTracker::Idle;
-                footTracker.time = ofGetElapsedTimef();
+                footTracker.state = FootTracker::WaitForAdd;
                 footTracker.count = 0;
                 guiSliders.at("gauge")->setValue(0);
             }
             break;
-        case FootTracker::Idle:
-            if(ofGetElapsedTimef() - footTracker.time > GUI_S(delayAfterRemove) && fsrFrontTotal < GUI_S(spawnThreshold))
-            {
-                footTracker.state = FootTracker::WaitForAdd;
-                footTracker.count = 0;
-            }
-            break;
     }
+    
+    guiSliders.at("state")->setValue((int)footTracker.state);
     
     for (int i = 0; i < 4; i++) {
         stringstream ss;
@@ -321,7 +330,8 @@ void ofApp::draw(){
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-    
+    if('1' <= key && key <= '8')
+        slot = key - '1';
 }
 
 //--------------------------------------------------------------
