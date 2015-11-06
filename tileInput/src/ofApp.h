@@ -156,6 +156,7 @@ public:
     ofPtr<ofxDatGui> gui;
     ofxDatGuiToggle* guiGaugeMode;
     ofxDatGuiButton* guiZeroInitialize;
+    ofxDatGuiDropdown* guiPresets;
     bool doZeroInitialize;
     map<string, ofxDatGuiSlider*> guiSliders;
     
