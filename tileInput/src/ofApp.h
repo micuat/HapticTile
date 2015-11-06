@@ -179,5 +179,8 @@ public:
     vector<int> fsrBias;
     
     string gameStatus;
+    
+    vector<string> presetOptions;
+    int curPreset;
 };
 

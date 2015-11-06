@@ -54,30 +54,32 @@ void ofApp::setup(){
     };
     doZeroInitialize = false;
     
-    vector<string> presetOptions;
     presetOptions.push_back("kids");
     presetOptions.push_back("adults");
     presetOptions.push_back("xl");
     guiPresets = gui->addDropdown("Preset", presetOptions);
-    guiPresets->setIndex(1);
+    curPreset = 1;
     gui->dropdownEventCallback = [&](ofxDatGuiDropdownEvent e) {
         if(e.target == guiPresets)
         {
             switch (e.child) {
                 case 0:
                     ofLogError() << "0";
+                    curPreset = 0;
                     guiSliders.at("closerThreshold")->setValue(5000);
                     guiSliders.at("spawnThreshold")->setValue(3000);
                     guiSliders.at("farThreshold")->setValue(40000);
                     break;
                 case 1:
                     ofLogError() << "1";
+                    curPreset = 1;
                     guiSliders.at("closerThreshold")->setValue(10000);
                     guiSliders.at("spawnThreshold")->setValue(5000);
                     guiSliders.at("farThreshold")->setValue(50000);
                     break;
                 case 2:
                     ofLogError() << "2";
+                    curPreset = 2;
                     guiSliders.at("closerThreshold")->setValue(15000);
                     guiSliders.at("spawnThreshold")->setValue(10000);
                     guiSliders.at("farThreshold")->setValue(60000);
@@ -176,6 +178,8 @@ void ofApp::update(){
                     message.addFloatArg(contactPosition.x);
                     message.addFloatArg(contactPosition.y);
                     message.addFloatArg(0.0f);
+                    message.addStringArg(presetOptions.at(curPreset));
+                    ofLogError() << presetOptions.at(curPreset);
                     senderRemote.sendMessage(message);
                 }
             }
@@ -195,6 +199,7 @@ void ofApp::update(){
                     message.addFloatArg(contactPosition.x);
                     message.addFloatArg(contactPosition.y);
                     message.addFloatArg(footTracker.gauge);
+                    message.addStringArg(presetOptions.at(curPreset));
                     senderRemote.sendMessage(message);
                 }
             }
@@ -255,6 +260,7 @@ void ofApp::update(){
                     message.addFloatArg(contactPosition.x);
                     message.addFloatArg(contactPosition.y);
                     message.addFloatArg(footTracker.gauge);
+                    message.addStringArg(presetOptions.at(curPreset));
                     senderRemote.sendMessage(message);
                 }
             }
