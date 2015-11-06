@@ -55,9 +55,9 @@ void ofApp::setup(){
     doZeroInitialize = false;
     
     auto guiDebug = gui->addFolder("debug");
-    GUI_SADD(guiDebug, closerThreshold, 0, 50000, 20000);
-    GUI_SADD(guiDebug, spawnThreshold, 0, 50000, 15000);
-    GUI_SADD(guiDebug, farThreshold, 0, 100000, 60000);
+    GUI_SADD(guiDebug, closerThreshold, 0, 50000, 10000);
+    GUI_SADD(guiDebug, spawnThreshold, 0, 50000, 5000);
+    GUI_SADD(guiDebug, farThreshold, 0, 100000, 50000);
     GUI_SADD(guiDebug, gauge, 0, 1, 0);
     GUI_SADD(guiDebug, fsr actual, 0, 100000, 0);
     GUI_SADD(guiDebug, fsr filtered, 0, 100000, 0);
