@@ -4,7 +4,7 @@
 #define GUI_S(A) guiSliders.at(#A)->getValue()
 #define GUI_SADD(G, A, MIN, MAX, DEFAULT) guiSliders.insert(pair<string, ofxDatGuiSlider*>(#A, G->addSlider(#A, MIN, MAX, DEFAULT)));
 
-ofxOscSender sender, senderRemote;
+ofxOscSender sender, senderRemote, senderSurface, senderPhone;
 
 //--------------------------------------------------------------
 void ofApp::setup(){
@@ -36,9 +36,11 @@ void ofApp::setup(){
     //ofxPublishOsc("192.168.0.3", 14925, "/niw/client/raw", fsrRaw, false);
     
     ofxSubscribeOsc(14926, "/niw/game/status", gameStatus);
-    
+    gameStatus = "none";
     sender.setup("localhost", 14924);
     senderRemote.setup("192.168.0.3", 14925);
+    senderSurface.setup("142.157.102.21", 55002);
+    senderPhone.setup("142.157.174.19", 55002);
     
     hapticPresets.resize(4, None);
     
@@ -112,8 +114,18 @@ void ofApp::setup(){
 
 void centerOfPressure(vector<int>& fsrRaw, ofVec2f& p, int& total)
 {
-    p.x = ((4 + fsrRaw[3 * 4 + 2] + fsrRaw[3 * 4 + 3] + fsrRaw[1 * 4 + 0] + fsrRaw[1 * 4 + 1] + 2 * (fsrRaw[1 * 4 + 2] + fsrRaw[1 * 4 + 3])) / (float)(8 + total));
-    p.y = ((4 + fsrRaw[3 * 4 + 0] + fsrRaw[3 * 4 + 3] + fsrRaw[1 * 4 + 0] + fsrRaw[1 * 4 + 3]) / (float)(8 + total));
+    float weightedx = 0;
+    weightedx += fsrRaw[3 * 4 + 2] + fsrRaw[3 * 4 + 3] + fsrRaw[1 * 4 + 0] + fsrRaw[1 * 4 + 1];
+    weightedx += 2 * (fsrRaw[1 * 4 + 2] + fsrRaw[1 * 4 + 3]);
+    weightedx += fsrRaw[2 * 4 + 2] + fsrRaw[2 * 4 + 3] + fsrRaw[0 * 4 + 0] + fsrRaw[0 * 4 + 1];
+    weightedx += 2 * (fsrRaw[0 * 4 + 2] + fsrRaw[0 * 4 + 3]);
+    p.x = (4 + weightedx) / (float)(8 + total);
+    
+    float weightedy = 0;
+    weightedy += fsrRaw[3 * 4 + 0] + fsrRaw[3 * 4 + 3] + fsrRaw[1 * 4 + 0] + fsrRaw[1 * 4 + 3];
+    weightedy += fsrRaw[2 * 4 + 1] + fsrRaw[2 * 4 + 2] + fsrRaw[0 * 4 + 1] + fsrRaw[0 * 4 + 2];
+    weightedy += 2 * (fsrRaw[2 * 4 + 0] + fsrRaw[2 * 4 + 3] + fsrRaw[0 * 4 + 0] + fsrRaw[0 * 4 + 3]);
+    p.y = ((4 + weightedy) / (float)(8 + total));
 
 }
 
@@ -140,8 +152,8 @@ void ofApp::update(){
                 if(slotCount == slot)
                     guiSliders.at("fsr actual")->setValue(fsrRaw.at(i * 4 + j));
                 slotCount++;
-                fsrFrontTotal += fsrRaw.at(i * 4 + j);
             }
+            fsrFrontTotal += fsrRaw.at(i * 4 + j);
         }
     }
     doZeroInitialize = false;
@@ -181,6 +193,8 @@ void ofApp::update(){
                     message.addStringArg(presetOptions.at(curPreset));
                     ofLogError() << presetOptions.at(curPreset);
                     senderRemote.sendMessage(message);
+                    senderSurface.sendMessage(message);
+                    senderPhone.sendMessage(message);
                 }
             }
             break;
@@ -201,6 +215,8 @@ void ofApp::update(){
                     message.addFloatArg(footTracker.gauge);
                     message.addStringArg(presetOptions.at(curPreset));
                     senderRemote.sendMessage(message);
+                    senderSurface.sendMessage(message);
+                    senderPhone.sendMessage(message);
                 }
             }
             else
@@ -223,7 +239,7 @@ void ofApp::update(){
                 }
                 guiSliders.at("gauge")->setValue(footTracker.gauge);
                 
-                if(footTracker.count % 8 == 0)
+                if(gameStatus == "start" && footTracker.count % 8 == 0)
                 {
                     float gauge = ofMap(footTracker.gauge, 0, 1, 0.25, 1);
                     ofxOscMessage message;
@@ -245,13 +261,14 @@ void ofApp::update(){
                     message.addFloatArg(203.);
                     sender.sendMessage(message);
                 }
-                if(footTracker.count % 8 == 1)
+                if(gameStatus == "start" && footTracker.count % 8 == 1)
                 {
                     ofxOscMessage message;
                     message.setAddress("/niw/direct");
                     message.addIntArg(contactPosition.x < 1.0f ? 4 : 2);
                     sender.sendMessage(message);
                 }
+                if(footTracker.count % 8 == 0)
                 {
                     ofxOscMessage message;
                     message.setAddress("/niw/client/aggregator/floorcontact");
@@ -262,6 +279,8 @@ void ofApp::update(){
                     message.addFloatArg(footTracker.gauge);
                     message.addStringArg(presetOptions.at(curPreset));
                     senderRemote.sendMessage(message);
+                    senderSurface.sendMessage(message);
+                    senderPhone.sendMessage(message);
                 }
             }
             break;
@@ -295,31 +314,52 @@ void ofApp::update(){
         if(hapticPresets[i] != Ice && vals.at(0) == 0 && vals.at(1) == 1 && vals.at(2) == 0 && vals.at(3) == 0)
         {
             hapticPresets[i] = Ice;
-            message.addStringArg("ice");
-            sender.sendMessage(message);
+            message.addStringArg("snow");
             //system(("say " + ofToString(static_cast<char>('a' + i)) + " ice").c_str());
         }
         else if(hapticPresets[i] != Sand && vals.at(0) == 0 && vals.at(1) == 0 && vals.at(2) == 0 && vals.at(3) == 1)
         {
             hapticPresets[i] = Sand;
             message.addStringArg("sand");
-            sender.sendMessage(message);
             //system(("say " + ofToString(static_cast<char>('a' + i)) + " sand").c_str());
         }
         else if(hapticPresets[i] != Water && vals.at(0) == 0 && vals.at(1) == 0 && vals.at(2) == 1 && vals.at(3) == 0)
         {
             hapticPresets[i] = Water;
-            message.addStringArg("water");
-            sender.sendMessage(message);
+            message.addStringArg("ice");
             //system(("say " + ofToString(static_cast<char>('a' + i)) + " water").c_str());
         }
         else if(hapticPresets[i] != Can && vals.at(0) == 1 && vals.at(1) == 0 && vals.at(2) == 0 && vals.at(3) == 0)
         {
             hapticPresets[i] = Can;
             message.addStringArg("can");
-            sender.sendMessage(message);
             //system(("say " + ofToString(static_cast<char>('a' + i)) + " can").c_str());
         }
+        else
+        {
+            continue;
+        }
+        sender.sendMessage(message);
+        senderSurface.sendMessage(message);
+        senderPhone.sendMessage(message);
+        
+        message.clear();
+        message.setAddress("/niw/preset/volume");
+        message.addIntArg(i + 1);
+        if(hapticPresets[i] == Can)
+        {
+            int canCount = 0;
+            for(int j = 0; j < 4; j++)
+            {
+                if(hapticPresets[j] == Can) canCount++;
+            }
+            message.addFloatArg(ofMap(canCount, 0, 4, 0.5f, 1.5f));
+        }
+        else
+        {
+            message.addFloatArg(1.0f);
+        }
+        sender.sendMessage(message);
     }
 }
 
