@@ -315,25 +315,33 @@ void ofApp::update(){
         {
             hapticPresets[i] = Ice;
             message.addStringArg("snow");
-            //system(("say " + ofToString(static_cast<char>('a' + i)) + " ice").c_str());
+            string tileName = ofToString(static_cast<char>('a' + i));
+            if(tileName == "a") tileName = "ay";
+            system(("say " + tileName + " snow").c_str());
         }
         else if(hapticPresets[i] != Sand && vals.at(0) == 0 && vals.at(1) == 0 && vals.at(2) == 0 && vals.at(3) == 1)
         {
             hapticPresets[i] = Sand;
             message.addStringArg("sand");
-            //system(("say " + ofToString(static_cast<char>('a' + i)) + " sand").c_str());
+            string tileName = ofToString(static_cast<char>('a' + i));
+            if(tileName == "a") tileName = "ay";
+            system(("say " + tileName + " sand").c_str());
         }
         else if(hapticPresets[i] != Water && vals.at(0) == 0 && vals.at(1) == 0 && vals.at(2) == 1 && vals.at(3) == 0)
         {
             hapticPresets[i] = Water;
             message.addStringArg("ice");
-            //system(("say " + ofToString(static_cast<char>('a' + i)) + " water").c_str());
+            string tileName = ofToString(static_cast<char>('a' + i));
+            if(tileName == "a") tileName = "ay";
+            system(("say " + tileName + " ice").c_str());
         }
         else if(hapticPresets[i] != Can && vals.at(0) == 1 && vals.at(1) == 0 && vals.at(2) == 0 && vals.at(3) == 0)
         {
             hapticPresets[i] = Can;
             message.addStringArg("can");
-            //system(("say " + ofToString(static_cast<char>('a' + i)) + " can").c_str());
+            string tileName = ofToString(static_cast<char>('a' + i));
+            if(tileName == "a") tileName = "ay";
+            system(("say " + tileName + " can").c_str());
         }
         else
         {
@@ -360,6 +368,8 @@ void ofApp::update(){
             message.addFloatArg(1.0f);
         }
         sender.sendMessage(message);
+        
+        ofSleepMillis(1000);
     }
 }
 
