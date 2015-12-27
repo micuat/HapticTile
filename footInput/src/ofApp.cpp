@@ -35,7 +35,7 @@ void ofApp::setup() {
 	// start from the front
 	bDrawPointCloud = false;
 
-	sender.setup(HOST, PORT);
+	sender.setup("142.157.174.19", 55002);
 }
 
 //--------------------------------------------------------------
@@ -51,19 +51,18 @@ void ofApp::update() {
 			unsigned int label = contourFinder.getLabel(i);
 			// only draw a line if this is not a new label
 			if (tracker.existsPrevious(label)) {
-				ofxOscMessage m;
-				m.setAddress("/footInput/" + ofToString(ofGetElapsedTimef()));
-				ofVec2f vel = ofxCv::toOf(tracker.getVelocity(i));
-				m.addFloatArg(vel.x);
-				m.addFloatArg(vel.y);
-				sender.sendMessage(m);
-
                 if(i == 0)
                 {
                     cv::Mat p = (cv::Mat_<double>(3, 1) << contourFinder.getCentroid(i).x * 2, contourFinder.getCentroid(i).y * 2, 1);
                     cv::Mat pMat = homography * p;
                     ofVec2f p2d(pMat.at<double>(0) / pMat.at<double>(2), pMat.at<double>(1) / pMat.at<double>(2));
-                    ofLogError() << p2d;
+
+                    ofxOscMessage m;
+                    m.setAddress("/sharedface/finger");
+                    m.addFloatArg(p2d.x);
+                    m.addFloatArg(0);
+                    m.addFloatArg(p2d.y);
+                    sender.sendMessage(m);
                 }
 			}
 		}
@@ -224,10 +223,10 @@ void ofApp::mousePressed(int x, int y, int button)
                 srcPoints.push_back(cv::Point2f(cornersRgb.at(2).x, cornersRgb.at(2).y));
                 srcPoints.push_back(cv::Point2f(cornersRgb.at(3).x, cornersRgb.at(3).y));
                 std::vector<cv::Point2f> dstPoints;
-                dstPoints.push_back(cv::Point2f(1, -1));
-                dstPoints.push_back(cv::Point2f(-1, -1));
-                dstPoints.push_back(cv::Point2f(-1, 1));
-                dstPoints.push_back(cv::Point2f(1, 1));
+                dstPoints.push_back(cv::Point2f(-1, -1) * 0.3f);
+                dstPoints.push_back(cv::Point2f(-1, 1) * 0.3f);
+                dstPoints.push_back(cv::Point2f(1, 1) * 0.3f);
+                dstPoints.push_back(cv::Point2f(1, -1) * 0.3f);
                 homography = ofxCv::findHomography(cv::Mat(srcPoints), cv::Mat(dstPoints));
 
 
