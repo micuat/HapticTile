@@ -42,4 +42,6 @@ public:
 	ofxOscSender sender;
 
     cv::Mat homography;
+
+    ofxCv::KalmanPosition kalman;
 };

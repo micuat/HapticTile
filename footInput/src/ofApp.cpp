@@ -36,6 +36,9 @@ void ofApp::setup() {
 	bDrawPointCloud = false;
 
 	sender.setup("142.157.174.19", 55002);
+
+    kalman.init(1e-1, 1e-1); // invert of (smoothness, rapidness)
+
 }
 
 //--------------------------------------------------------------
@@ -57,12 +60,15 @@ void ofApp::update() {
                     cv::Mat pMat = homography * p;
                     ofVec2f p2d(pMat.at<double>(0) / pMat.at<double>(2), pMat.at<double>(1) / pMat.at<double>(2));
 
+                    kalman.update(p2d);
+
                     ofxOscMessage m;
                     m.setAddress("/sharedface/finger");
-                    m.addFloatArg(p2d.x);
+                    m.addFloatArg(kalman.getEstimation().x);
                     m.addFloatArg(0);
-                    m.addFloatArg(p2d.y);
+                    m.addFloatArg(kalman.getEstimation().y);
                     sender.sendMessage(m);
+
                 }
 			}
 		}
