@@ -40,4 +40,6 @@ public:
 	ofImage footThresholded, floorMask;
 
 	ofxOscSender sender;
+
+    cv::Mat homography;
 };

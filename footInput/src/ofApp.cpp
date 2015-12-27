@@ -57,6 +57,14 @@ void ofApp::update() {
 				m.addFloatArg(vel.x);
 				m.addFloatArg(vel.y);
 				sender.sendMessage(m);
+
+                if(i == 0)
+                {
+                    cv::Mat p = (cv::Mat_<double>(3, 1) << contourFinder.getCentroid(i).x * 2, contourFinder.getCentroid(i).y * 2, 1);
+                    cv::Mat pMat = homography * p;
+                    ofVec2f p2d(pMat.at<double>(0) / pMat.at<double>(2), pMat.at<double>(1) / pMat.at<double>(2));
+                    ofLogError() << p2d;
+                }
 			}
 		}
 
@@ -208,6 +216,20 @@ void ofApp::mousePressed(int x, int y, int button)
 				floorNormalUp.x = a.at<double>(0);
 				floorNormalUp.y = a.at<double>(1);
 				floorNormalUp.z = a.at<double>(2);
+
+                // Find homography
+                std::vector<cv::Point2f> srcPoints;
+                srcPoints.push_back(cv::Point2f(cornersRgb.at(0).x, cornersRgb.at(0).y));
+                srcPoints.push_back(cv::Point2f(cornersRgb.at(1).x, cornersRgb.at(1).y));
+                srcPoints.push_back(cv::Point2f(cornersRgb.at(2).x, cornersRgb.at(2).y));
+                srcPoints.push_back(cv::Point2f(cornersRgb.at(3).x, cornersRgb.at(3).y));
+                std::vector<cv::Point2f> dstPoints;
+                dstPoints.push_back(cv::Point2f(1, -1));
+                dstPoints.push_back(cv::Point2f(-1, -1));
+                dstPoints.push_back(cv::Point2f(-1, 1));
+                dstPoints.push_back(cv::Point2f(1, 1));
+                homography = ofxCv::findHomography(cv::Mat(srcPoints), cv::Mat(dstPoints));
+
 
                 // Generate mask of the floor - brute force!!
                 for(int y = 0; y < kinect.getHeight(); y+=2) {
