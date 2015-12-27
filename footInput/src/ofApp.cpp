@@ -19,7 +19,8 @@ void ofApp::setup() {
 		ofLogNotice() << "zero plane dist: " << kinect.getZeroPlaneDistance() << "mm";
 	}
 	
-	footThresholded.allocate(kinect.width / 2, kinect.height / 2, OF_IMAGE_GRAYSCALE);
+    footThresholded.allocate(kinect.width / 2, kinect.height / 2, OF_IMAGE_GRAYSCALE);
+    floorMask.allocate(kinect.width / 2, kinect.height / 2, OF_IMAGE_GRAYSCALE);
 	contourFinder.setMinAreaRadius(5);
 	contourFinder.setMaxAreaRadius(100);
 	contourFinder.setThreshold(15);
@@ -102,6 +103,9 @@ void ofApp::drawPointCloud() {
 			if (kinect.getDistanceAt(x, y) > 0) {
 				ofPoint p = kinect.getWorldCoordinateAt(x, y);
 				if (corners3f.size() == 4) {
+                    if(floorMask.getColor(x / 2, y / 2).r == 0)
+                        continue;
+
 					ofPoint mult = p * floorNormal;
 					if (mult.x + mult.y + mult.z - 1 > 0) {
 						continue;
@@ -120,9 +124,18 @@ void ofApp::drawPointCloud() {
 	footThresholded.update();
 	ofPushMatrix();
 	ofScale(2, 2);
+    ofSetColor(100);
+    floorMask.draw(0, 0);
 	ofSetColor(255);
-	footThresholded.draw(0, 0);
+	//footThresholded.draw(0, 0);
 	contourFinder.draw();
+    if(contourFinder.size() > 0)
+    {
+        ofPushStyle();
+        ofSetColor(ofColor::red);
+        ofDrawCircle(ofxCv::toOf(contourFinder.getCentroid(0)), 5);
+        ofPopStyle();
+    }
 	ofPopMatrix();
 	easyCam.begin();
 	glPointSize(3);
@@ -196,6 +209,31 @@ void ofApp::mousePressed(int x, int y, int button)
 				floorNormalUp.y = a.at<double>(1);
 				floorNormalUp.z = a.at<double>(2);
 
+                // Generate mask of the floor - brute force!!
+                for(int y = 0; y < kinect.getHeight(); y+=2) {
+                    for(int x = 0; x < kinect.getWidth(); x+=2) {
+                        floorMask.setColor(x / 2, y / 2, 0);
+                    }
+                }
+
+                ofPoint &p0 = cornersRgb.at(0);
+                ofPoint &p1 = cornersRgb.at(1);
+                ofPoint &p2 = cornersRgb.at(2);
+                ofPoint &p3 = cornersRgb.at(3);
+                ofPoint p01 = p1 - p0;
+                ofPoint p02 = p2 - p0;
+                ofPoint p03 = p3 - p0;
+                for(int y = 0; y < 1024; y++) {
+                    for(int x = 0; x < 1024 - y; x++) {
+                        ofPoint p = p01 * x / 1024.0f + p02 * y / 1024.0f + p0;
+                        floorMask.setColor(p.x / 2, p.y / 2, 255);
+                        p = p02 * x / 1024.0f + p03 * y / 1024.0f + p0;
+                        floorMask.setColor(p.x / 2, p.y / 2, 255);
+                    }
+                }
+                floorMask.update();
+
+                bDrawPointCloud = !bDrawPointCloud;
 			}
 		}
 	}

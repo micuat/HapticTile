@@ -37,7 +37,7 @@ public:
 	vector<ofPoint> corners3f;
 	vector<ofPoint> cornersUp3f;
 	ofVec3f floorNormal, floorNormalUp;
-	ofImage footThresholded;
+	ofImage footThresholded, floorMask;
 
 	ofxOscSender sender;
 };
