@@ -40,7 +40,7 @@ void ofApp::setup(){
     sender.setup("localhost", 14924);
     senderRemote.setup("192.168.0.3", 14925);
     senderSurface.setup("142.157.102.21", 55002);
-    senderPhone.setup("142.157.174.19", 55002);
+    senderPhone.setup("192.168.44.255", 55002);
     
     hapticPresets.resize(4, None);
     

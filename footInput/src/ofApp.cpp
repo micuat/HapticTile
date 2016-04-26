@@ -35,7 +35,7 @@ void ofApp::setup() {
 	// start from the front
 	bDrawPointCloud = false;
 
-	sender.setup("142.157.174.19", 55002);
+	sender.setup("192.168.44.255", 55002);
 
     kalman.init(1e-1, 1e-1); // invert of (smoothness, rapidness)
 
@@ -79,7 +79,7 @@ void ofApp::update() {
 //--------------------------------------------------------------
 void ofApp::draw() {
 	
-    ofBackground(100, 100, 100);
+    ofBackground(0);
     
 	ofSetColor(255, 255, 255);
 	
@@ -136,9 +136,11 @@ void ofApp::drawPointCloud() {
 	}
 	footThresholded.update();
 	ofPushMatrix();
+    ofEnableBlendMode(OF_BLENDMODE_ADD);
+    kinect.draw(0, 0, 640, 480);
 	ofScale(2, 2);
-    ofSetColor(100);
-    floorMask.draw(0, 0);
+    //ofSetColor(100);
+    //floorMask.draw(0, 0);
 	ofSetColor(255);
 	//footThresholded.draw(0, 0);
 	contourFinder.draw();
@@ -150,6 +152,8 @@ void ofApp::drawPointCloud() {
         ofPopStyle();
     }
 	ofPopMatrix();
+    ofDisableBlendMode();
+    ofEnableAlphaBlending();
 	easyCam.begin();
 	glPointSize(3);
 	ofPushMatrix();
