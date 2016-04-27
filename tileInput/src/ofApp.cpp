@@ -29,7 +29,7 @@ void ofApp::setup(){
             break;
         }
     }
-    
+
     fsrTiles.resize(6, 0);
     fsrRaw.resize(16, 0);
     ofxPublishOsc("localhost", 14924, "/niw/client/VtoF", fsrTiles, false);
@@ -296,6 +296,8 @@ void ofApp::update(){
     
     guiSliders.at("state")->setValue((int)footTracker.state);
     
+    if(contactThread != nullptr)
+
     for (int i = 0; i < 4; i++) {
         stringstream ss;
         ss << static_cast<char>('a' + i) << ' ';
